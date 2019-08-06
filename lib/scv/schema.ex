@@ -4,7 +4,7 @@ defmodule Scv.Schema do
   query do
     field :users, list_of(:user) do
       arg(:count, non_null(:integer))
-      middleware(Scv.Authorization, :users?)
+      middleware(Scv.Authorization, :can_get_users)
       resolve(&users/2)
     end
   end
@@ -14,13 +14,13 @@ defmodule Scv.Schema do
     field(:name, :string)
 
     field :email, :string do
-      middleware(Scv.Authorization, :user_email?)
+      middleware(Scv.Authorization, :can_get_user_email)
       resolve(&email/3)
     end
 
     field :notes, list_of(:note) do
       arg(:count, non_null(:integer))
-      middleware(Scv.Authorization, :user_notes?)
+      middleware(Scv.Authorization, :can_get_notes)
       resolve(&notes/3)
     end
   end
@@ -30,7 +30,7 @@ defmodule Scv.Schema do
     field(:value, :string)
 
     field :author, :user do
-      middleware(Scv.Authorization, [:note_author?, :users?])
+      middleware(Scv.Authorization, [:can_get_note_author, :can_get_users])
       resolve(&author/3)
     end
   end
@@ -41,7 +41,7 @@ defmodule Scv.Schema do
   end
 
   defp users(args, res) do
-    if res.context.permissions.users? do
+    if res.context.permissions.can_get_users do
       {:ok, Enum.map(1..args.count, &user/1)}
     else
       {:error, "Not authorized to list users"}
@@ -53,7 +53,7 @@ defmodule Scv.Schema do
   end
 
   defp email(user, _args, res) do
-    if res.context.permissions.user_email? do
+    if res.context.permissions.can_get_user_email do
       {:ok, user.email}
     else
       {:error, "Not authorized to get user emails"}
@@ -61,7 +61,7 @@ defmodule Scv.Schema do
   end
 
   defp notes(user, args, res) do
-    if res.context.permissions.user_notes? do
+    if res.context.permissions.can_get_notes do
       {:ok, Enum.map(1..args.count, &note(&1, user))}
     else
       {:error, "Not authorized to get user notes"}
@@ -73,7 +73,7 @@ defmodule Scv.Schema do
   end
 
   defp author(note, _args, res) do
-    if res.context.permissions.note_author? and res.context.permissions.users? do
+    if res.context.permissions.can_get_note_author and res.context.permissions.can_get_users do
       {:ok, note.author}
     else
       {:error, "Not authorized to get note author"}
