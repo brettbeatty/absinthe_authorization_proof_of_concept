@@ -1,10 +1,11 @@
 defmodule Scv.Schema do
   use Absinthe.Schema
+  import Scv.Authorization, only: [authorize: 1]
 
   query do
     field :users, list_of(:user) do
       arg(:count, non_null(:integer))
-      middleware(Scv.Authorization, :can_get_users)
+      authorize(:can_get_users)
       resolve(&users/2)
     end
   end
@@ -14,13 +15,13 @@ defmodule Scv.Schema do
     field(:name, :string)
 
     field :email, :string do
-      middleware(Scv.Authorization, :can_get_user_email)
+      authorize(:can_get_user_email)
       resolve(&email/3)
     end
 
     field :notes, list_of(:note) do
       arg(:count, non_null(:integer))
-      middleware(Scv.Authorization, :can_get_notes)
+      authorize(:can_get_notes)
       resolve(&notes/3)
     end
   end
@@ -30,7 +31,7 @@ defmodule Scv.Schema do
     field(:value, :string)
 
     field :author, :user do
-      middleware(Scv.Authorization, [:can_get_note_author, :can_get_users])
+      authorize([:can_get_note_author, :can_get_users])
       resolve(&author/3)
     end
   end
@@ -73,7 +74,9 @@ defmodule Scv.Schema do
   end
 
   defp author(note, _args, res) do
-    if res.context.permissions.can_get_note_author and res.context.permissions.can_get_users do
+    permissions = res.context.permissions
+
+    if permissions.can_get_note_author and permissions.can_get_users do
       {:ok, note.author}
     else
       {:error, "Not authorized to get note author"}

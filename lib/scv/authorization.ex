@@ -2,6 +2,12 @@ defmodule Scv.Authorization do
   @behaviour Absinthe.Middleware
   @behaviour Absinthe.Plugin
 
+  defmacro authorize(permissions) do
+    quote do
+      middleware(unquote(__MODULE__), unquote(permissions))
+    end
+  end
+
   @impl Absinthe.Middleware
   def call(res, permissions)
 
@@ -37,15 +43,15 @@ defmodule Scv.Authorization do
     permissions =
       exec.acc[__MODULE__].keys
       |> Enum.to_list()
-      |> check_permissions()
+      |> check()
 
     put_in(exec.acc[__MODULE__].result, permissions)
   end
 
-  defp check_permissions([]), do: %{}
+  defp check([]), do: %{}
 
-  defp check_permissions(keys) do
-    IO.inspect({:check_permissions, keys})
+  defp check(keys) do
+    IO.inspect({:check, keys})
     Map.new(keys, &{&1, true})
   end
 
